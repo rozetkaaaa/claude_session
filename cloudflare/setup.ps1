@@ -38,10 +38,34 @@ $toml = [IO.File]::ReadAllText($tomlPath).Replace("__WORKER_NAME__", $name).Repl
 [IO.File]::WriteAllText($tomlPath, $toml, (New-Object Text.UTF8Encoding($false)))
 
 Step "1/6 Вход в Cloudflare"
-Write-Host "Сейчас откроется браузер: войдите в Cloudflare и нажмите Allow."
 Push-Location $wd
-npx --yes wrangler login
-if ($LASTEXITCODE -ne 0) { Fail "Не удалось войти в Cloudflare." }
+$who = (npx --yes wrangler whoami 2>&1 | Out-String)
+if ($who -match "not authenticated|You are not") {
+  Write-Host "Получаю ссылку для входа (до минуты)..."
+  $log = Join-Path $env:TEMP ("wr_login_" + [guid]::NewGuid().ToString("N").Substring(0, 6) + ".log")
+  $p = Start-Process -FilePath "cmd.exe" -ArgumentList ('/c npx --yes wrangler login --browser=false > "' + $log + '" 2>&1') -PassThru -WindowStyle Hidden
+  $url = $null
+  for ($i = 0; $i -lt 150 -and -not $url -and -not $p.HasExited; $i++) {
+    Start-Sleep -Seconds 1
+    if (Test-Path $log) {
+      $mm = [regex]::Match((Get-Content $log -Raw -ErrorAction SilentlyContinue), 'https://[^\s"]+oauth2/auth[^\s"]*')
+      if ($mm.Success) { $url = $mm.Value }
+    }
+  }
+  if (-not $url) {
+    $txt = ""; if (Test-Path $log) { $txt = Get-Content $log -Raw }
+    Write-Host "Не удалось получить ссылку для входа. Вывод wrangler:" -ForegroundColor Red
+    Write-Host $txt
+    try { $p.Kill() } catch {}
+    Fail "Вход в Cloudflare не удался (см. текст выше)."
+  }
+  Write-Host "Открываю браузер: войдите в Cloudflare и нажмите Allow." -ForegroundColor Green
+  Write-Host "(Если окно браузера не появилось, откройте эту ссылку вручную: $url)"
+  Start-Process $url
+  $p.WaitForExit()
+  Remove-Item -Force $log -ErrorAction SilentlyContinue
+}
+else { Write-Host "Вы уже вошли в Cloudflare на этом компьютере." }
 Write-Host ""
 npx --yes wrangler whoami
 $ok = Read-Host "Это нужный аккаунт? Будет создан новый Worker '$name'. Продолжить? (да/нет)"
