@@ -8,6 +8,12 @@ $DefaultRepo = "rozetkaaaa/claude_session"
 function Step($t) { Write-Host ""; Write-Host "=== $t ===" -ForegroundColor Cyan }
 function Pause-Enter($t) { Read-Host $t | Out-Null }
 function Plain($ss) { [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ss)) }
+$Browser = $null
+$bf = Join-Path $Here "browser.txt"
+if (Test-Path $bf) { $Browser = (Get-Content $bf -Raw).Trim() }
+function Open-Url($u) {
+  if ($Browser -and (Test-Path $Browser)) { Start-Process -FilePath $Browser -ArgumentList $u } else { Start-Process $u }
+}
 function Fail($t) { Write-Host ""; Write-Host "ОШИБКА: $t" -ForegroundColor Red; Write-Host "Сделайте скриншот окна и отправьте тому, кто дал вам этот файл."; Read-Host "Нажмите Enter, чтобы закрыть" | Out-Null; exit 1 }
 
 try {
@@ -61,7 +67,7 @@ if ($who -match "not authenticated|You are not") {
   }
   Write-Host "Открываю браузер: войдите в Cloudflare и нажмите Allow." -ForegroundColor Green
   Write-Host "(Если окно браузера не появилось, откройте эту ссылку вручную: $url)"
-  Start-Process $url
+  Open-Url $url
   $p.WaitForExit()
   Remove-Item -Force $log -ErrorAction SilentlyContinue
 }
@@ -84,7 +90,7 @@ Write-Host "Откроется страница создания токена. �
 Write-Host "  Repository access: Only select repositories -> $Repo"
 Write-Host "  Permissions: Actions = Read and write (больше ничего не выбирайте)"
 Write-Host "Нажмите Generate token и скопируйте токен (он начинается с github_pat_)."
-Start-Process "https://github.com/settings/personal-access-tokens/new?name=claude-keeper&description=Triggers+the+keeper+workflow+only&expires_in=365&actions=write"
+Open-Url "https://github.com/settings/personal-access-tokens/new?name=claude-keeper&description=Triggers+the+keeper+workflow+only&expires_in=365&actions=write"
 Pause-Enter "Когда токен скопирован, нажмите Enter. Затем вставьте его правой кнопкой мыши (символы не видны) и снова Enter"
 npx --yes wrangler secret put GH_TOKEN --name $name
 if ($LASTEXITCODE -ne 0) { Fail "Не удалось сохранить токен GitHub." }
@@ -103,11 +109,11 @@ Pop-Location
 Step "5/6 Два секрета в GitHub"
 Write-Host "Откроется страница. Значения будут в буфере обмена, вставляйте Ctrl+V."
 Set-Clipboard -Value ($workerUrl + "/report")
-Start-Process "https://github.com/$Repo/settings/secrets/actions/new"
+Open-Url "https://github.com/$Repo/settings/secrets/actions/new"
 Write-Host "  Секрет 1:  Name = KEEPER_REPORT_URL   Secret = Ctrl+V   -> Add secret"
 Pause-Enter "Добавили? Нажмите Enter"
 Set-Clipboard -Value $secret
-Start-Process "https://github.com/$Repo/settings/secrets/actions/new"
+Open-Url "https://github.com/$Repo/settings/secrets/actions/new"
 Write-Host "  Секрет 2:  Name = KEEPER_REPORT_SECRET   Secret = Ctrl+V   -> Add secret"
 Pause-Enter "Добавили? Нажмите Enter"
 Set-Clipboard -Value " "
