@@ -1,0 +1,23 @@
+name = "__WORKER_NAME__"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "KEEPER"
+class_name = "Keeper"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Keeper"]
+
+[vars]
+GH_REPO = "__GH_REPO__"
+GH_WORKFLOW = "keeper.yml"
+GH_BRANCH = "main"
+TZ_OFFSET_H = "5"
+ACTIVE_FROM = ""
+ACTIVE_TO = ""
+MAX_PINGS_PER_DAY = "6"
+LEAD_S = "30"
+# Секреты (хранятся зашифрованно, из панели их прочитать нельзя): GH_TOKEN, REPORT_SECRET, NTFY_URL (необязательно)
