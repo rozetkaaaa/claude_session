@@ -290,6 +290,13 @@ def report():
     except Exception as e:
         log(f"отчёт не отправлен: {e}")
 
+def is_due(force=False):
+    """Только проверка, без пинга: пора ли пинговать (для быстрого предварительного шага в Actions)."""
+    cfg, st, now = load_cfg(), load_json(STATE_FILE, {}), time.time()
+    if st.get("blocked_until", 0) > now: return False
+    if force: return True
+    return now >= st.get("next_due", 0) and in_active_hours(cfg, now)
+
 def status():
     st, cfg = load_json(STATE_FILE, {}), load_cfg()
     print(f"home: {HOME}\nmode={cfg['mode']} model={cfg['model']} effort={cfg['effort']}")
@@ -300,8 +307,9 @@ def status():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--status", action="store_true"); ap.add_argument("--selftest", action="store_true")
-    ap.add_argument("--force", action="store_true"); ap.add_argument("--unblock", action="store_true")
+    ap.add_argument("--force", action="store_true"); ap.add_argument("--check", action="store_true"); ap.add_argument("--unblock", action="store_true")
     a = ap.parse_args()
+    if a.check: return 0 if is_due() else 3
     if a.status: return status()
     if a.unblock:
         st = load_json(STATE_FILE, {})
