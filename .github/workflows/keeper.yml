@@ -16,7 +16,7 @@ jobs:
       TZ: Asia/Qyzylorda
       KEEPER_HOME: /tmp/keeper
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      KEEPER_NOTIFY_URL: https://ntfy.sh/claude-keeper-cafba235a2f4
+      KEEPER_NOTIFY_URL: ${{ secrets.KEEPER_NOTIFY_URL }}
     steps:
       - uses: actions/checkout@v4
       - name: пора ли пинговать?
