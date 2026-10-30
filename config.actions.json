@@ -1,0 +1,7 @@
+{
+  "model": "haiku",
+  "effort": "low",
+  "mode": "print",
+  "active_hours": null,
+  "max_pings_per_day": 6
+}

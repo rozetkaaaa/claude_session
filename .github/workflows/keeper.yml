@@ -1,0 +1,26 @@
+name: claude-session-keeper
+on:
+  workflow_dispatch:         # запускает только Cloudflare Worker, расписания здесь нет
+permissions:
+  contents: read
+concurrency:
+  group: keeper
+  cancel-in-progress: false
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KEEPER_HOME: ${{ runner.temp }}/keeper
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      KEEPER_REPORT_URL: ${{ secrets.KEEPER_REPORT_URL }}
+      KEEPER_REPORT_SECRET: ${{ secrets.KEEPER_REPORT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: npm i -g @anthropic-ai/claude-code
+      - run: |
+          mkdir -p "$KEEPER_HOME"
+          cp config.actions.json "$KEEPER_HOME/config.json"
+          python3 keeper.py --force
