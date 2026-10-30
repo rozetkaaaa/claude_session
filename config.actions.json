@@ -3,5 +3,6 @@
   "effort": "low",
   "mode": "print",
   "active_hours": null,
-  "max_pings_per_day": 6
+  "max_pings_per_day": 6,
+  "margin_seconds": 30
 }

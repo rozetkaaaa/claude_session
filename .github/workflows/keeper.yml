@@ -1,8 +1,8 @@
 name: claude-session-keeper
 on:
   schedule:
-    - cron: "*/30 * * * *"   # быстрая проверка; сам пинг уходит только когда окно кончилось (~5 раз в сутки)
-  workflow_dispatch: {}      # ручной запуск = пинг прямо сейчас (запускает цикл)
+    - cron: "2-59/5 * * * *"   # каждые 5 минут (минуты :02, :07, ...: не в :00/:30, где у GitHub очередь)
+  workflow_dispatch: {}      # ручной запуск = пинг прямо сейчас
 permissions:
   contents: write
 concurrency:
@@ -11,12 +11,12 @@ concurrency:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 15
     env:
       TZ: Asia/Qyzylorda
       KEEPER_HOME: /tmp/keeper
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      KEEPER_NOTIFY_URL: https://ntfy.sh/claude_session
+      KEEPER_NOTIFY_URL: https://ntfy.sh/claude-keeper-cafba235a2f4
     steps:
       - uses: actions/checkout@v4
       - name: пора ли пинговать?
@@ -25,12 +25,25 @@ jobs:
           mkdir -p "$KEEPER_HOME"
           cp config.actions.json "$KEEPER_HOME/config.json"
           [ -f state/state.json ] && cp state/state.json "$KEEPER_HOME/state.json" || true
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || python3 keeper.py --check; then echo "due=true" >> "$GITHUB_OUTPUT"; else echo "рано, выхожу"; fi
+          ETA=$(python3 keeper.py --eta)
+          echo "до пинга, секунд: $ETA"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "due=true" >> "$GITHUB_OUTPUT"; echo "at=0" >> "$GITHUB_OUTPUT"
+          elif [ "$ETA" -le 360 ]; then
+            echo "due=true" >> "$GITHUB_OUTPUT"; echo "at=$(( $(date +%s) + ETA + 2 ))" >> "$GITHUB_OUTPUT"
+          else
+            echo "рано, выхожу"
+          fi
       - if: steps.due.outputs.due == 'true'
         uses: actions/setup-node@v4
         with: { node-version: "22" }
       - if: steps.due.outputs.due == 'true'
         run: npm i -g @anthropic-ai/claude-code
+      - if: steps.due.outputs.due == 'true'
+        name: ждать точного времени
+        run: |
+          AT=${{ steps.due.outputs.at }}; NOW=$(date +%s)
+          if [ "$AT" -gt "$NOW" ]; then echo "жду $((AT-NOW)) с"; sleep $((AT-NOW)); fi
       - if: steps.due.outputs.due == 'true'
         name: пинг
         run: python3 keeper.py ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
