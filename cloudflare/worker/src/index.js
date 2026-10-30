@@ -56,7 +56,7 @@ const cfgOf = env => ({
   leadMs: Number(env.LEAD_S ?? 30) * 1000,
 });
 
-async function tg(env, text) {      // уведомления через ntfy (NTFY_URL, например https://ntfy.sh/claude_session)
+async function tg(env, text) {      // уведомления через ntfy (секрет NTFY_URL: адрес вашего топика)
   if (!env.NTFY_URL) return;
   await fetch(env.NTFY_URL.trim(), { method: "POST", headers: { Title: "Claude keeper" }, body: text }).catch(() => {});
 }
