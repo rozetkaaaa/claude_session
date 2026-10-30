@@ -1,7 +1,7 @@
 name: claude-session-keeper
 on:
   schedule:
-    - cron: "2-59/5 * * * *"   # каждые 5 минут (минуты :02, :07, ...: не в :00/:30, где у GitHub очередь)
+    - cron: "3-59/5 * * * *"   # каждые 5 минут (минуты :03, :08, ...)
   workflow_dispatch: {}      # ручной запуск = пинг прямо сейчас
 permissions:
   contents: write
